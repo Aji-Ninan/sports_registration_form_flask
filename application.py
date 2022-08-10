@@ -1,7 +1,27 @@
+from email import message
+import os
 from flask import Flask,redirect, render_template, request
+from flask_mail import Mail, Message
 import sqlite3
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
+load_dotenv
+app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
+# print (os.getenv("MAIL_DEFAULT_SENDER"))
+app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+# print (os.getenv("MAIL_PASSWORD"))
+app.config["MAIL_PORT"] = 587
+# We're gonna use gmail. Gmail let's you send email on TCP port 587
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_USE_TLS"] = True
+# Type of encryption
+# app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+# Private information like email_id and password are stored in environment variables
+mail = Mail(app)
+# Passing flask application to a function called mail
+
 
 def get_db_connection():
     conn = sqlite3.connect('sport_registration.db')
@@ -26,9 +46,9 @@ def index():
 
 @app.route("/register", methods=["POST"])
 def register():
-    name = request.form.get("name")
-    if not name:
-        return render_template("error.html", message="Missing Name")
+    email = request.form.get("email")
+    if not email:
+        return render_template("error.html", message="Missing email")
     sport = request.form.get("sport")
     if not sport:
         return render_template("error.html", message="Missing sport")
@@ -37,9 +57,12 @@ def register():
 
 
     db = get_db_connection()
-    db.execute("INSERT INTO registrants (name, sport) VALUES(?, ?)", (name, sport))
+    db.execute("INSERT INTO registrants (email, sport) VALUES(?, ?)", (email, sport))
     db.commit()
     db.close()
+
+    message = Message("You are registered!", recipients=[email])
+    mail.send(message)
 
     return redirect("/registrants")
 
