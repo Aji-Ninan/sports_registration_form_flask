@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request
+from flask import Flask,redirect, render_template, request
+import sqlite3
 
 app = Flask(__name__)
 
-REGISTRANTS ={}
-# {} is for dictonaries
+def get_db_connection():
+    conn = sqlite3.connect('sport_registration.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 SPORTS = [
@@ -32,8 +35,18 @@ def register():
     if sport not in SPORTS:
         return render_template("error.html", message = "Invalid sport")
 
-    REGISTRANTS[name] = sport 
-    # keys and values
 
-    return render_template("registrants.html", registrants=REGISTRANTS)
+    db = get_db_connection()
+    db.execute("INSERT INTO registrants (name, sport) VALUES(?, ?)", (name, sport))
+    db.commit()
+    db.close()
 
+    return redirect("/registrants")
+
+
+
+@app.route("/registrants")
+def registrants():
+        db = get_db_connection()
+        registrants = db.execute("SELECT * FROM registrants")
+        return render_template("registrants.html", registrants=registrants)
